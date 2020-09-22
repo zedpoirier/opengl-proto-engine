@@ -54,18 +54,45 @@ int main() {
 	glViewport(0, 0, 800, 600);
 	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
-	// vertices
-	float vertices[] = {
-		-0.5f, -0.5f, 0.0f,
+	// exercise 1: two triangles
+	float triangles[] = {
+		-0.5f, 0.0f, 0.0f,
+		-0.5f, 0.5f, 0.0f,
+		0.0f, 0.0f, 0.0f,
+		0.5f, 0.0f, 0.0f,
 		0.5f, -0.5f, 0.0f,
-		0.0f, 0.5f, 0.0f
+		0.0f, 0.0f, 0.0f
+
 	};
 
-	// vertex buffer object setup
+	// simple quad with indices
+	float quad[] = {
+	 0.5f,  0.5f, 0.0f,  // top right
+	 0.5f, -0.5f, 0.0f,  // bottom right
+	-0.5f, -0.5f, 0.0f,  // bottom left
+	-0.5f,  0.5f, 0.0f   // top left 
+	};
+	unsigned int quadIndices[] = {  
+		0, 1, 3,   // first triangle
+		1, 2, 3    // second triangle
+	};
+	
+	// generate VAO
+	unsigned int vao;
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+
+	// vertex buffer for simple triangle
 	unsigned int vbo;
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(triangles), triangles, GL_STATIC_DRAW);
+
+	// element buffer object for quad
+	unsigned int ebo;
+	glGenBuffers(1, &ebo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(quadIndices), quadIndices, GL_STATIC_DRAW);
 	
 	// compile error checker data
 	int  success;
@@ -109,6 +136,11 @@ int main() {
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
 
+	// vertex attribute linking
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
+
 	// Main Loop
 	while (!glfwWindowShouldClose(window))
 	{
@@ -120,6 +152,11 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		glUseProgram(shaderProgram);
+		glBindVertexArray(vao);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+		//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		//glBindVertexArray(0);
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
 		glfwSwapBuffers(window);
