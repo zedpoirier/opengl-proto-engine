@@ -23,6 +23,13 @@ const char* fragmentShaderSource =
 	"{\n"
 	"	FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
 	"}\0";
+const char* fragmentShaderTwoSource =
+	"#version 330 core\n"
+	"out vec4 FragColor;\n"
+	"void main()\n"
+	"{\n"
+	"	FragColor = vec4(0.9f, 0.8f, 0.2f, 1.0f);\n"
+	"}\0";
 
 // Main is the entry point
 int main() {
@@ -55,14 +62,18 @@ int main() {
 	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
 	// exercise 1: two triangles
-	float triangles[] = {
+	// exercise 2: 2 VAOs and VBOs
+	// exercise 3: 2 shader programs
+	float triangle1[] = {
 		-0.5f, 0.0f, 0.0f,
 		-0.5f, 0.5f, 0.0f,
-		0.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 0.0f
+	};
+
+	float triangle2[] = {
 		0.5f, 0.0f, 0.0f,
 		0.5f, -0.5f, 0.0f,
 		0.0f, 0.0f, 0.0f
-
 	};
 
 	// simple quad with indices
@@ -76,17 +87,31 @@ int main() {
 		0, 1, 3,   // first triangle
 		1, 2, 3    // second triangle
 	};
-	
-	// generate VAO
-	unsigned int vao;
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
 
-	// vertex buffer for simple triangle
-	unsigned int vbo;
-	glGenBuffers(1, &vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(triangles), triangles, GL_STATIC_DRAW);
+	
+	// vao and vbo 1
+	unsigned int VAO1;
+	glGenVertexArrays(1, &VAO1);
+	glBindVertexArray(VAO1);
+	unsigned int VBO1;
+	glGenBuffers(1, &VBO1);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO1);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(triangle1), triangle1, GL_STATIC_DRAW);
+	// vertex attribute linking
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
+	// vao and vbo 2
+	unsigned int VAO2;
+	glGenVertexArrays(1, &VAO2);
+	glBindVertexArray(VAO2);
+	unsigned int VBO2;
+	glGenBuffers(1, &VBO2);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO2);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(triangle2), triangle2, GL_STATIC_DRAW);
+	// vertex attribute linking
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
 
 	// element buffer object for quad
 	unsigned int ebo;
@@ -119,7 +144,18 @@ int main() {
 	if (!success)
 	{
 		glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-		std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
+		std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
+	}
+	// fragment shader 2 setup
+	unsigned int fragmentShaderTwo;
+	fragmentShaderTwo = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(fragmentShaderTwo, 1, &fragmentShaderTwoSource, NULL);
+	glCompileShader(fragmentShaderTwo);
+	glGetShaderiv(fragmentShaderTwo, GL_COMPILE_STATUS, &success);
+	if (!success)
+	{
+		glGetShaderInfoLog(fragmentShaderTwo, 512, NULL, infoLog);
+		std::cout << "ERROR::SHADER::FRAGMENT-TWO::COMPILATION_FAILED\n" << infoLog << std::endl;
 	}
 	// shader program linking
 	unsigned int shaderProgram;
@@ -133,12 +169,22 @@ int main() {
 		glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
 		std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
 	}
+	// shader program two linking
+	unsigned int shaderProgramTwo;
+	shaderProgramTwo = glCreateProgram();
+	glAttachShader(shaderProgramTwo, vertexShader);
+	glAttachShader(shaderProgramTwo, fragmentShaderTwo);
+	glLinkProgram(shaderProgramTwo);
+	// check for SP linking errors
+	glGetProgramiv(shaderProgramTwo, GL_LINK_STATUS, &success);
+	if (!success) {
+		glGetProgramInfoLog(shaderProgramTwo, 512, NULL, infoLog);
+		std::cout << "ERROR::SHADER::PROGRAM-TWO::LINKING_FAILED\n" << infoLog << std::endl;
+	}
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
+	glDeleteShader(fragmentShaderTwo);
 
-	// vertex attribute linking
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
 
 
 	// Main Loop
@@ -152,8 +198,11 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		glUseProgram(shaderProgram);
-		glBindVertexArray(vao);
-		glDrawArrays(GL_TRIANGLES, 0, 6);
+		glBindVertexArray(VAO1);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glUseProgram(shaderProgramTwo);
+		glBindVertexArray(VAO2);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
 		//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 		//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		//glBindVertexArray(0);
@@ -180,4 +229,5 @@ void processInput(GLFWwindow* window)
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 }
+
 
